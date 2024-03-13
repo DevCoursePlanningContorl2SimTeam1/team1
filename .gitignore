@@ -348,3 +348,11 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/cmake,ros,windows,macos,linux,python,c++
 
+# VSCode
+.vscode/**
+.idea/**
+.cashe/**
+.history/**
+
+#catkin_tools
+.catkin_tools/**
