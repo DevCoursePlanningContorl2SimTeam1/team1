@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import rospy
+import cv2
+import numpy as np
+import os, rospkg
+
+from sensor_msgs.msg import CompressedImage
+from cv_bridge import CvBridgeError
+
+class IMGParser:
+    def __init__(self):
+        rospy.init_node('img_parser', anonymous=True)
+        self.img_sub = rospy.Subscriber('/image_jpeg/compressed', CompressedImage, self.callback)
+        self.is_image = False
+        self.img_bgr = None
+
+        rate = rospy.Rate(30)
+        while not rospy.is_shutdown():
+            os.system('clear')
+            if not self.is_image:
+                cv2.destroyAllWindows()
+                print("[error] can't subscribe '/image_jpeg/compressed' topic")
+            else:
+                cv2.imshow('image', self.img_bgr)
+                cv2.waitKey(1)
+                print("Camera sensor was connected")
+
+            rate.sleep()
+
+    def callback(self, msg):
+        self.is_image = True
+        np_arr = np.frombuffer(msg.data, np.uint8)
+        self.img_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+if __name__ == '__main__':
+    try:
+        IMGParser = IMGParser()
+    except rospy.ROSInterruptException:
+        pass
