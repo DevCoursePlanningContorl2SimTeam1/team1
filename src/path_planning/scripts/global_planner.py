@@ -41,149 +41,114 @@ class dijkstra_path_pub:
         #Initialize ROS Node and Set Publisher and Subscriber
         rospy.init_node('dijkstra_path_pub', anonymous=True)
         self.global_path_pub=rospy.Publisher('/global_path', Path, queue_size=1)
-        
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback)
-        rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.init_callback)
-        
+
         #TODO: (1) Read Mgeo DATA and Confirm the data
         # Data Load and Initializing
-        load_path=os.path.normpath(os.path.join(lib_path, 'lib/mgeo_data/SeongNamecity'))
-        mgeo_planner_map=MGeoPlannerMap.create_instance_from_json(load_path)
-        
-        node_set=mgeo_planner_map.node_set
-        link_set=mgeo_planner_map.link_set
-        
+        load_path=os.path.normpath(os.path.join(lib_path, 'lib/mgeo_data/SeongNamcity'))
+        mgeo_planner_map = MGeoPlannerMap.create_instance_from_json(load_path)
+
+        node_set = mgeo_planner_map.node_set
+        link_set = mgeo_planner_map.link_set
+
         self.nodes=node_set.nodes
         self.links=link_set.lines
-        
-        # Initialize Dijkstra Gloabl Path Planning
-        self.global_planner=Dijkstra(self.nodes, self.links)
-        
-        # Initial Position and Goal Position
-        self.is_goal_pose=False
-        self.is_init_pose=False
-        
-        # Global Path Message Intializing
-        self.global_path_msg=Path()
-        self.global_path_msg.header.frame_id='/map'
-        
-        # Start Node for Loop execution
-        rate=rospy.Rate(10)
-        while not rospy.is_shutdown():
-            while True:
-                if self.is_goal_pose == True and self.is_init_pose==True:
-                    # Destination
-                    break
-                else:
-                    rospy.loginfo("Waiting goal pose data")
-                    rospy.loginfo("waiting init pose data")
-                    
-                # Make global path
-                self.global_path_msg = self.calc_dijkstra_path_node(self.start_node, self.end_node)
-                
-                #TODO: Dijkstra Global Path Info publishing
-                self.global_path_pub.publish(self.global_path_msg)
-                rate.sleep
-    def init_callback(self, msg):
-        # If the start node is set already,,,, return
-        if self.is_init_pose is not False:
-            self.is_goal_pose == False
-        #TODO: Start Node and Final Node
-        # Find the start Node
-        start_min_dis=float('inf')
-        self.init_msg=msg
-        self.init_x=self.init_msg.pose.pose.position.x
-        self.init_y=self.init_msg.pose.pose.position.y
-        
-        # Set the start node as the nearest node
-        for node_idx in self.nodes:
-            node_pose_x=self.nodes[node_idx].point[0]
-            node_pose_y=self.nodes[node_idx].point[1]
-            start_dis=sqrt(pow(self.init_x-node_pose_x,2)+pow(self.init_y-node_pose_y,2))
-            if start_dis < start_min_dis:
-                start_min_dis=start_dis
-                self.start_node = node_idx
-        self.is_init_pose=True
-    # Call back function for destination
-    def goal_callback(self, msg):
-        goal_min_dis=float('inf')
-        self.goal_msg=msg
-        self.goal_x=self.goal_msg.pose.position.x
-        self.goal_y=self.goal_msg.pose.position.y
 
-        for node_idx in self.nodes:
-            node_pose_x=self.nodes[node_idx].point[0]
-            node_pose_y=self.nodes[node_idx].point[1]
-            goal_dis=sqrt(pow(self.goal_x-node_pose_x,2)+pow(self.goal_y - node_pose_y , 2))
-            
-            
-            if goal_dis < goal_min_dis:
-                goal_min_dis=goal_dis
-                self.end_node = node_idx
-        self.is_goal_pose=True
-    def calc_dijkstra_path_node(self, start_node, end_node):
-        result,path=self.global_planner.find_shortest_path(start_node, end_node)
-        
-        out_path=Path()
-        out_path.header.frame_id='/map'
-        
-        for waypoint in path["point_path"]:
-            path_x=waypoint[0]
-            path_y=waypoint[1]
-            read_pose=PoseStamped()
-            read_pose.pose.position.x=path_x
-            read_pose.pose.position.y=path_y
-            read_pose.pose.orientation.w=1
-            out_path.poses.append(read_pose)
-        
+        self.global_planner=Dijkstra(self.nodes,self.links)
+
+        self.node_list = ["154S","3E","121S", "32E", "65S", "75S", "73S", "85S", "82S", "78S", "124S", "122S", "8E", "111E" , "203S"] #'A119BS010184'
+        #,'A119BS010313' node
+
+        #TODO: (2) 시작 Node 와 종료 Node 정의
+        #self.start_node = 'A119BS010209'
+        #self.end_node = 'A119BS010184'
+
+        self.global_path_msg = Path()
+        self.global_path_msg.header.frame_id = '/map'
+
+        #self.global_path_msg = self.calc_dijkstra_path_node(self.start_node, self.end_node)
+        self.global_path_msg = self.calc_dijkstra_path_node(self.node_list)
+
+        rate = rospy.Rate(10) # 10hz
+        while not rospy.is_shutdown():
+            #TODO: (11) dijkstra 이용해 만든 Global Path 정보 Publish
+            self.global_path_pub.publish(self.global_path_msg)
+            rate.sleep()
+
+    def calc_dijkstra_path_node(self, node_list):
+
+        #TODO: (10) dijkstra 경로 데이터를 ROS Path 메세지 형식에 맞춰 정의
+        out_path = Path()
+        out_path.header.frame_id = '/map'
+
+        for i in range(len(node_list)-1):
+            result, path = self.global_planner.find_shortest_path(node_list[i], node_list[i + 1])
+
+            for waypoint in path["point_path"] :
+                path_x = waypoint[0]
+                path_y = waypoint[1]
+                read_pose = PoseStamped()
+                read_pose.pose.position.x = path_x
+                read_pose.pose.position.y = path_y
+                # if i >= 2 :
+                #     read_pose.pose.position.z = 1
+                read_pose.pose.orientation.w = 1
+                out_path.poses.append(read_pose)   
+
         return out_path
-    
 
 class Dijkstra:
     def __init__(self, nodes, links):
-        self.nodes=nodes
-        self.links=links
-        self.weight=self.get_weight_matrix()
-        self.lane_change_link_idx=[]
-    
+        self.nodes = nodes
+        self.links = links
+        self.weight = self.get_weight_matrix()
+        self.lane_change_link_idx = []
+
     def get_weight_matrix(self):
-        weight=dict()
+        #TODO: (3) weight 값 계산
+        # 초기 설정
+        weight = dict() 
         for from_node_id, from_node in self.nodes.items():
-            weight_from_this_node=dict()
+            # 현재 노드에서 다른 노드로 진행하는 모든 weight
+            weight_from_this_node = dict()
             for to_node_id, to_node in self.nodes.items():
-                weight_from_this_node[to_node_id]=float('inf')
-            weight[from_node_id]=weight_from_this_node
-            
+                weight_from_this_node[to_node_id] = float('inf')
+            # 전체 weight matrix에 추가
+            weight[from_node_id] = weight_from_this_node
+
         for from_node_id, from_node in self.nodes.items():
-            weight[from_node_id][from_node_id]=0
-            
+            # 현재 노드에서 현재 노드로는 cost = 0
+            weight[from_node_id][from_node_id] = 0
+
             for to_node in from_node.get_to_nodes():
-                shortest_link, min_cost=self.find_shortest_link_leading_to_node(from_node, to_node)
-                weight[from_node_id][to_node.idx] = min_cost
-        
+                # 현재 노드에서 to_node로 연결되어 있는 링크를 찾고, 그 중에서 가장 빠른 링크를 찾아준다
+                shortest_link, min_cost = self.find_shortest_link_leading_to_node(from_node,to_node)
+                weight[from_node_id][to_node.idx] = min_cost           
+
         return weight
     
-    def find_shortest_link_leading_to_node(self, from_node, to_node):
-        to_links=[]
+    def find_shortest_link_leading_to_node(self,from_node, to_node):
+        """현재 노드에서 to_node로 연결되어 있는 링크를 찾고, 그 중에서 가장 빠른 링크를 찾아준다"""
+        #TODO: (3) weight 값 계산
+        # NOTE: 
+        to_links = []
         for link in from_node.get_to_links():
             if link.to_node is to_node:
                 to_links.append(link)
-        
-        if len(to_links)==0:
-            raise BaseException('[ERROR] Error @Dijkstra.find_shortest_path: Internal data error. There is no link from node to node')
-        
+
+        if len(to_links) == 0:
+            raise BaseException('[ERROR] Error @ Dijkstra.find_shortest_path : Internal data error. There is no link from node (id={}) to node (id={})'.format(self.idx, to_node.idx))
+
         shortest_link = None
-        min_cost=float('inf')
+        min_cost = float('inf')
         for link in to_links:
             if link.cost < min_cost:
                 min_cost = link.cost
-                shortest_link=link
+                shortest_link = link
+
         return shortest_link, min_cost
-    
- 
+        
     def find_nearest_node_idx(self, distance, s):        
         idx_list = list(self.nodes.keys())
-        print(type(idx_list))
         min_value = float('inf')
         min_idx = idx_list[-1]
 
@@ -194,8 +159,7 @@ class Dijkstra:
         return min_idx
 
     def find_shortest_path(self, start_node_idx, end_node_idx): 
-        print(start_node_idx, end_node_idx)
-        #TODO: (4) Dijkstra Path Initialization
+        #TODO: (4) Dijkstra Path 초기화 로직
         # s 초기화         >> s = [False] * len(self.nodes)
         # from_node 초기화 >> from_node = [start_node_idx] * len(self.nodes)
         s = dict()
@@ -207,7 +171,7 @@ class Dijkstra:
         s[start_node_idx] = True
         distance =copy.deepcopy(self.weight[start_node_idx])
 
-        #TODO: (5) Dijkstra Core
+        #TODO: (5) Dijkstra 핵심 코드
         for i in range(len(self.nodes.keys()) - 1):
             selected_node_idx = self.find_nearest_node_idx(distance, s)
             s[selected_node_idx] = True            
@@ -218,7 +182,7 @@ class Dijkstra:
                         distance[to_node_idx] = distance_candidate
                         from_node[to_node_idx] = selected_node_idx
 
-        #TODO: (6) node path Creation
+        #TODO: (6) node path 생성
         tracking_idx = end_node_idx
         node_path = [end_node_idx]
         
@@ -228,7 +192,7 @@ class Dijkstra:
 
         node_path.reverse()
 
-        #TODO: (7) link path Creation
+        #TODO: (7) link path 생성
         link_path = []
         for i in range(len(node_path) - 1):
             from_node_idx = node_path[i]
@@ -240,11 +204,11 @@ class Dijkstra:
             shortest_link, min_cost = self.find_shortest_link_leading_to_node(from_node,to_node)
             link_path.append(shortest_link.idx)
 
-        #TODO: (8) Result
+        #TODO: (8) Result 판별
         if len(link_path) == 0:
             return False, {'node_path': node_path, 'link_path':link_path, 'point_path':[]}
 
-        #TODO: (9) point path
+        #TODO: (9) point path 생성
         point_path = []
         for link_id in link_path:
             link = self.links[link_id]
@@ -254,5 +218,5 @@ class Dijkstra:
         return True, {'node_path': node_path, 'link_path':link_path, 'point_path':point_path}
 
 if __name__ == '__main__':
-
+    
     dijkstra_path_pub = dijkstra_path_pub()
