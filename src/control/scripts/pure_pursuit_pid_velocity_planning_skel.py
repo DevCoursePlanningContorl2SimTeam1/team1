@@ -13,21 +13,21 @@ import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 
-# advanced_purepursuit 은 차량의 차량의 종 횡 방향 제어 예제입니다.
-# Purpusuit 알고리즘의 Look Ahead Distance 값을 속도에 비례하여 가변 값으로 만들어 횡 방향 주행 성능을 올립니다.
-# 횡방향 제어 입력은 주행할 Local Path (지역경로) 와 차량의 상태 정보 Odometry 를 받아 차량을 제어 합니다.
-# 종방향 제어 입력은 목표 속도를 지정 한뒤 목표 속도에 도달하기 위한 Throttle control 을 합니다.
-# 종방향 제어 입력은 longlCmdType 1(Throttle control) 이용합니다.
+# Advanced_purepursuit is an example of lateral control for vehicle steering.
+# It enhances the lateral driving performance by making the Look Ahead Distance variable proportional to the vehicle's speed.
+# Lateral control inputs are received based on the local path to be traversed and the vehicle's state information provided by odometry.
+# Longitudinal control inputs involve specifying the target speed and then applying throttle control to reach the target speed.
+# Longitudinal control inputs utilize longlCmdType 1 (Throttle control).
 
-# 노드 실행 순서 
-# 1. subscriber, publisher 선언
-# 2. 속도 비례 Look Ahead Distance 값 설정
-# 3. 좌표 변환 행렬 생성
-# 4. Steering 각도 계산
-# 5. PID 제어 생성
-# 6. 도로의 곡률 계산
-# 7. 곡률 기반 속도 계획
-# 8. 제어입력 메세지 Publish
+# Node Execution Order
+# 1. Declare subscribers and publishers.
+# 2. Set Look Ahead Distance value proportional to speed.
+# 3. Create coordinate transformation matrix.
+# 4. Calculate steering angle.
+# 5. Generate PID controller.
+# 6. Compute curvature of the road.
+# 7. Plan speed based on curvature.
+# 8. Publish control input message.
 
 class pure_pursuit :
     def __init__(self):
