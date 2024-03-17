@@ -53,12 +53,12 @@ class pure_pursuit :
         self.target_vel = 40
         self.current_vel = 0.0
         self.forward_point=Point()
-        self.current_postion=Point()
+        self.current_position=Point()
         self.is_look_forward_point=False
         self.vehicle_length = None
         self.lfd = None
         if self.vehicle_length is None or self.lfd is None:
-            print("you need to change values at line 57~58 ,  self.vegicle_length , lfd")
+            print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
             exit()
 
         self.pid_controller = pidControl()
@@ -67,7 +67,7 @@ class pure_pursuit :
         while not rospy.is_shutdown():
             if self.is_path ==True and self.is_odom==True and self.is_status == True :
                 
-                vehicle_position=self.current_postion
+                vehicle_position=self.current_position
                 self.is_look_forward_point= False
 
                 translation=[vehicle_position.x, vehicle_position.y]
@@ -145,8 +145,8 @@ class pure_pursuit :
         self.is_odom=True
         odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
         _,_,self.vehicle_yaw=euler_from_quaternion(odom_quaternion)
-        self.current_postion.x=msg.pose.pose.position.x
-        self.current_postion.y=msg.pose.pose.position.y
+        self.current_position.x=msg.pose.pose.position.x
+        self.current_position.y=msg.pose.pose.position.y
 
 if __name__ == '__main__':
     try:

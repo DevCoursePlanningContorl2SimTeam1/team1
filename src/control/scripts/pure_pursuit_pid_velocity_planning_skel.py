@@ -52,12 +52,12 @@ class pure_pursuit :
         self.is_look_forward_point = False
 
         self.forward_point = Point()
-        self.current_postion = Point()
+        self.current_position = Point()
 
         self.vehicle_length = None
         self.lfd = None
         if self.vehicle_length is None or self.lfd is None:
-            print("you need to change values at line 57~58 ,  self.vegicle_length , lfd")
+            print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
             exit()
         self.min_lfd = 5
         self.max_lfd = 30
@@ -113,10 +113,10 @@ class pure_pursuit :
         self.is_odom=True
         odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
         _,_,self.vehicle_yaw=euler_from_quaternion(odom_quaternion)
-        self.current_postion.x=msg.pose.pose.position.x
-        self.current_postion.y=msg.pose.pose.position.y
+        self.current_position.x=msg.pose.pose.position.x
+        self.current_position.y=msg.pose.pose.position.y
 
-    def status_callback(self,msg): ## Vehicl Status Subscriber 
+    def status_callback(self,msg): ## Vehicle Status Subscriber 
         self.is_status=True
         self.status_msg=msg    
         
@@ -126,7 +126,7 @@ class pure_pursuit :
     
     def get_current_waypoint(self,ego_status,global_path):
         min_dist = float('inf')        
-        currnet_waypoint = -1
+        current_waypoint = -1
         for i,pose in enumerate(global_path.poses):
             dx = ego_status.position.x - pose.pose.position.x
             dy = ego_status.position.y - pose.pose.position.y
@@ -134,8 +134,8 @@ class pure_pursuit :
             dist = sqrt(pow(dx,2)+pow(dy,2))
             if min_dist > dist :
                 min_dist = dist
-                currnet_waypoint = i
-        return currnet_waypoint
+                current_waypoint = i
+        return current_waypoint
 
     def calc_pure_pursuit(self,):
 
@@ -148,7 +148,7 @@ class pure_pursuit :
             self.lfd=self.max_lfd
         rospy.loginfo(self.lfd)
         
-        vehicle_position=self.current_postion
+        vehicle_position=self.current_position
         self.is_look_forward_point= False
 
         translation = [vehicle_position.x, vehicle_position.y]
@@ -203,22 +203,22 @@ class pidControl:
         return output
 
 class velocityPlanning:
-    def __init__ (self,car_max_speed, road_friciton):
+    def __init__ (self,car_max_speed, road_friction):
         self.car_max_speed = car_max_speed
-        self.road_friction = road_friciton
+        self.road_friction = road_friction
 
-    def curvedBaseVelocity(self, gloabl_path, point_num):
+    def curvedBaseVelocity(self, global_path, point_num):
         out_vel_plan = []
 
         for i in range(0,point_num):
             out_vel_plan.append(self.car_max_speed)
 
-        for i in range(point_num, len(gloabl_path.poses) - point_num):
+        for i in range(point_num, len(global_path.poses) - point_num):
             x_list = []
             y_list = []
             for box in range(-point_num, point_num):
-                x = gloabl_path.poses[i+box].pose.position.x
-                y = gloabl_path.poses[i+box].pose.position.y
+                x = global_path.poses[i+box].pose.position.x
+                y = global_path.poses[i+box].pose.position.y
                 x_list.append([-2*x, -2*y ,1])
                 y_list.append((-x*x) - (y*y))
 
@@ -240,10 +240,10 @@ class velocityPlanning:
                 v_max = self.car_max_speed
             out_vel_plan.append(v_max)
 
-        for i in range(len(gloabl_path.poses) - point_num, len(gloabl_path.poses)-10):
+        for i in range(len(global_path.poses) - point_num, len(global_path.poses)-10):
             out_vel_plan.append(30)
 
-        for i in range(len(gloabl_path.poses) - 10, len(gloabl_path.poses)):
+        for i in range(len(global_path.poses) - 10, len(global_path.poses)):
             out_vel_plan.append(0)
 
         return out_vel_plan

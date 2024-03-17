@@ -25,7 +25,7 @@ class pure_pursuit :
         self.is_odom=False
 
         self.forward_point=Point()
-        self.current_postion=Point()
+        self.current_position=Point()
         self.is_look_forward_point=False
         self.vehicle_length=1
         self.lfd=5
@@ -35,7 +35,7 @@ class pure_pursuit :
 
             if self.is_path ==True and self.is_odom==True  :
                 
-                vehicle_position=self.current_postion
+                vehicle_position=self.current_position
                 self.is_look_forward_point= False
 
                 translation=[vehicle_position.x, vehicle_position.y]
@@ -101,8 +101,8 @@ class pure_pursuit :
         self.is_odom=True
         odom_quaternion=(msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z,msg.pose.pose.orientation.w)
         _,_,self.vehicle_yaw=euler_from_quaternion(odom_quaternion)
-        self.current_postion.x=msg.pose.pose.position.x
-        self.current_postion.y=msg.pose.pose.position.y
+        self.current_position.x=msg.pose.pose.position.x
+        self.current_position.y=msg.pose.pose.position.y
 
 if __name__ == '__main__':
     try:
