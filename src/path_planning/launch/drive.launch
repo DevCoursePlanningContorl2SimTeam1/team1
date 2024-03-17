@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="path_planning" type="global_planner.py" name="mgeo_dijkstar_path"/>
+    <node pkg="path_planning" type="gpsimu_parser.py" name="GPS_IMU_parser"/>
+    <node pkg="path_planning" type="mgeo_pub.py" name="mgeo_pub"/>
+    <node pkg="path_planning" type="tf_pub.py" name="tf"/>
+</launch>
