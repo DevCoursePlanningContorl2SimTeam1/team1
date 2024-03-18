@@ -55,7 +55,7 @@ class pure_pursuit :
         self.forward_point=Point()
         self.current_position=Point()
         self.is_look_forward_point=False
-        self.vehicle_length = None
+        self.vehicle_length = 4.47
         self.lfd = None
         if self.vehicle_length is None or self.lfd is None:
             print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
