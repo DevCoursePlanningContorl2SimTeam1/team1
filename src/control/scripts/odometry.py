@@ -38,7 +38,7 @@ class odometry:
         orientation = tf.transformations.quaternion_from_euler(0, 0, (diff_heading)/180*pi)
         odometry_data = Odometry()
         odometry_data.header.stamp = rospy.Time.now()
-        odometry_data.header.frame_id = "odom"
+        odometry_data.header.frame_id = "map"
         odometry_data.child_frame_id = "base_link"
         odometry_data.pose.pose.position.x = diff_x
         odometry_data.pose.pose.position.y = diff_y
