@@ -3,84 +3,103 @@
 
 import os, sys
 import rospy
-from math import cos, sin, pi, sqrt, pow, atan2
-from morai_msgs.msg import EgoVehicleStatus, ObjectStatusList
-from geometry_msgs.msg import Point, PoseStamped, Point32
+from math import cos,sin,pi,sqrt,pow,atan2
+from morai_msgs.msg  import EgoVehicleStatus,ObjectStatusList
+from geometry_msgs.msg import Point,PoseStamped, Point32
 from nav_msgs.msg import Path
 import numpy as np
+
 
 class latticePlanner:
     def __init__(self):
         rospy.init_node('lattice_planner', anonymous=True)
-        
-        #(1) subscriber, publisher!
+
+        # (1) subscriber, publisher 선언
         rospy.Subscriber("/local_path", Path, self.path_callback)
-        rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
+        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback)
         rospy.Subscriber("/Object_topic", ObjectStatusList, self.object_callback)
-        
-        self.lattice_path_pub = rospy.Publisher('/lattice_path', Path, queue_size=1)
-        
-        self.is_path=False
-        self.is_status=False
-        self.is_obj=False
-        
-        rate=rospy.Rate(30)
+
+        self.lattice_path_pub = rospy.Publisher('/lattice_path', Path, queue_size = 1)
+
+        self.is_path = False
+        self.is_status = False
+        self.is_obj = False
+
+        rate = rospy.Rate(30) # 30hz
         while not rospy.is_shutdown():
+
             if self.is_path and self.is_status and self.is_obj:
                 if self.checkObject(self.local_path, self.object_data):
-                    self.lattice_path_pub.publish(self.local_path)
+                    lattice_path = self.latticePlanner(self.local_path, self.status_msg)
+                    lattice_path_index = self.collision_check(self.object_data, lattice_path)
+
+                    # (7)  lattice 경로 메세지 Publish
+                    self.lattice_path_pub.publish(lattice_path[lattice_path_index])
                 else:
-                    self.lattice_path_pub.publsih(self.local_path)
+                    self.lattice_path_pub.publish(self.local_path)
             rate.sleep()
-    
+
     def checkObject(self, ref_path, object_data):
-        is_crash=False
+
+        is_crash = False
         for obstacle in object_data.npc_list:
-            for path in ref_path.poses:
-                dis=sqrt(pow(path.pose.position.x-obstacle.position.x,2)+pow(path.pose.pose.position.y-obstacle.position.y,2))
-                if dis < 2.35:
-                    is_crash=True
+            for path in ref_path.poses:  
+                dis = sqrt(pow(path.pose.position.x - obstacle.position.x, 2) + pow(path.pose.position.y - obstacle.position.y, 2))                
+                if dis < 4: # 장애물의 좌표값이 지역 경로 상의 좌표값과의 직선거리가 2.35 미만일때 충돌이라 판단.
+                    is_crash = True
                     break
+
         return is_crash
-    
+
     def collision_check(self, object_data, out_path):
-        selected_lane=-1
-        lane_weight=[3,2,1,1,2,3] #reference path
+        #TODO: (6) 생성된 충돌회피 경로 중 낮은 비용의 경로 선택
         
-        for obstacle in object_data.npc_list:
-            for path_num in range(len(out_path)):
-                for path_pos in out_path[path_num].poses:
-                    dis=sqrt(pow(obstacle.position.x-path_pos.position.x,2)+pow(obstacle.position.y-path_pos.pose.position.y,2))
+        selected_lane = -1        
+        lane_weight = [3, 2, 1, 1, 2, 3] #reference path 
+        
+        for obstacle in object_data.npc_list:                        
+            for path_num in range(len(out_path)) :                    
+                for path_pos in out_path[path_num].poses :                                
+                    dis = sqrt(pow(obstacle.position.x - path_pos.pose.position.x, 2) + pow(obstacle.position.y - path_pos.pose.position.y, 2))
                     if dis < 1.5:
-                        lane_weight[path_num]=lane_weight[path_num]+10
-        selected_lane=lane_weight.index(min(lane_weight))
-        
+                        lane_weight[path_num] = lane_weight[path_num] + 100
+
+        selected_lane = lane_weight.index(min(lane_weight))     
+
         return selected_lane
-    
-    def path_callback(self, msg):
-        self.is_path=True
-        self.local_path=msg
-    
-    def status_callback(self, msg):
-        self.is_status=True
-        self.status_msg=msg
-    
-    def object_callback(self, msg):
-        self.is_obj=True
-        self.object_data=msg
+
+    def path_callback(self,msg):
+        self.is_path = True
+        self.local_path = msg  
         
-    def latticPlanner(self, ref_path, vehicle_status):
-        out_path=[]
-        vehicle_pose_x=vehicle_status.position.x
-        vehicle_pose_y=vehicle_status.position.y
-        vehicle_velocity=vehicle_status.velocity.x*3.6
+    def status_callback(self,msg): ## Vehicl Status Subscriber 
+        self.is_status = True
+        self.status_msg = msg
+
+    def object_callback(self,msg):
+        self.is_obj = True
+        self.object_data = msg
+
+    def latticePlanner(self,ref_path, vehicle_status):
+        out_path = []
+        vehicle_pose_x = vehicle_status.position.x
+        vehicle_pose_y = vehicle_status.position.y
+        vehicle_velocity = vehicle_status.velocity.x * 3.6
+
+        look_distance = int(vehicle_velocity * 0.2 * 2)
+
         
-        look_distance=int(vehicle_velocity*0.2*2)
-        
-        if look_distance < 20:
-            look_distance=20
-        
-        if len(ref_path.poses)>look_distance:
+        if look_distance < 20 :
+            look_distance = 20                    
+
+        if len(ref_path.poses) > look_distance :  
+            #TODO: (3) 좌표 변환 행렬 생성
+            """
+            # 좌표 변환 행렬을 만듭니다.
+            # Lattice 경로를 만들기 위해서 경로 생성을 시작하는 Point 좌표에서 
+            # 경로 생성이 끝나는 Point 좌표의 상대 위치를 계산해야 합니다.
+            """          
+
             global_ref_start_point      = (ref_path.poses[0].pose.position.x, ref_path.poses[0].pose.position.y)
             global_ref_start_next_point = (ref_path.poses[1].pose.position.x, ref_path.poses[1].pose.position.y)
 
@@ -113,7 +132,6 @@ class latticePlanner:
             # Path 생성 방식은 3차 방정식을 이용하며 lane_change_ 예제와 동일한 방식의 경로 생성을 하면 됩니다.
             # 생성된 Lattice 경로는 out_path 변수에 List 형식으로 넣습니다.
             # 충돌 회피 경로는 기존 경로를 제외하고 좌 우로 3개씩 총 6개의 경로를 가지도록 합니다.
-
             '''
                 
             for end_point in local_lattice_points :
