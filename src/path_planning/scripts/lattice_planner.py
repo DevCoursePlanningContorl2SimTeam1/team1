@@ -30,11 +30,13 @@ class latticePlanner:
 
             if self.is_path and self.is_status and self.is_obj:
                 if self.checkObject(self.local_path, self.object_data):
-                    lattice_path = self.latticePlanner(self.local_path, self.status_msg)
-                    lattice_path_index = self.collision_check(self.object_data, lattice_path)
+                    #lattice_path = self.latticePlanner(self.local_path, self.status_msg)
+                    #lattice_path = self.local_path
+                    #lattice_path_index = self.collision_check(self.object_data, lattice_path)
 
                     # (7)  lattice 경로 메세지 Publish
-                    self.lattice_path_pub.publish(lattice_path[lattice_path_index])
+                    #self.lattice_path_pub.publish(lattice_path[lattice_path_index])
+                    self.lattice_path_pub.publish(self.local_path)
                 else:
                     self.lattice_path_pub.publish(self.local_path)
             rate.sleep()
@@ -45,7 +47,7 @@ class latticePlanner:
         for obstacle in object_data.npc_list:
             for path in ref_path.poses:  
                 dis = sqrt(pow(path.pose.position.x - obstacle.position.x, 2) + pow(path.pose.position.y - obstacle.position.y, 2))                
-                if dis < 4: # 장애물의 좌표값이 지역 경로 상의 좌표값과의 직선거리가 2.35 미만일때 충돌이라 판단.
+                if dis < 2.35: # 장애물의 좌표값이 지역 경로 상의 좌표값과의 직선거리가 2.35 미만일때 충돌이라 판단.
                     is_crash = True
                     break
 
@@ -98,6 +100,7 @@ class latticePlanner:
             # 좌표 변환 행렬을 만듭니다.
             # Lattice 경로를 만들기 위해서 경로 생성을 시작하는 Point 좌표에서 
             # 경로 생성이 끝나는 Point 좌표의 상대 위치를 계산해야 합니다.
+            
             """          
 
             global_ref_start_point      = (ref_path.poses[0].pose.position.x, ref_path.poses[0].pose.position.y)
@@ -132,6 +135,7 @@ class latticePlanner:
             # Path 생성 방식은 3차 방정식을 이용하며 lane_change_ 예제와 동일한 방식의 경로 생성을 하면 됩니다.
             # 생성된 Lattice 경로는 out_path 변수에 List 형식으로 넣습니다.
             # 충돌 회피 경로는 기존 경로를 제외하고 좌 우로 3개씩 총 6개의 경로를 가지도록 합니다.
+
             '''
                 
             for end_point in local_lattice_points :
