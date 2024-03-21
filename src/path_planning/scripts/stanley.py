@@ -13,21 +13,6 @@ import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 
-# Advanced_purepursuit is an example of lateral control for vehicle steering.
-# It enhances the lateral driving performance by making the Look Ahead Distance variable proportional to the vehicle's speed.
-# Lateral control inputs are received based on the local path to be traversed and the vehicle's state information provided by odometry.
-# Longitudinal control inputs involve specifying the target speed and then applying throttle control to reach the target speed.
-# Longitudinal control inputs utilize longlCmdType 1 (Throttle control).
-
-# Node Execution Order
-# 1. Declare subscribers and publishers.
-# 2. Set Look Ahead Distance value proportional to speed.
-# 3. Create coordinate transformation matrix.
-# 4. Calculate steering angle.
-# 5. Generate PID controller.
-# 6. Compute curvature of the road.
-# 7. Plan speed based on curvature.
-# 8. Publish control input message.
 
 class stanley :
     def __init__(self):
@@ -60,10 +45,10 @@ class stanley :
         if self.vehicle_length is None or self.lfd is None:
             print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
             exit()
-        self.min_lfd = 5
+        self.min_lfd = 15
         self.max_lfd = 30
         self.lfd_gain = 0.78
-        self.target_velocity = 40
+        self.target_velocity = 45
 
         self.pid = pidControl()
         self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.15)
@@ -188,7 +173,7 @@ class pidControl:
     def __init__(self):
         self.p_gain = 0.3
         self.i_gain = 0.00
-        self.d_gain = 0.03
+        self.d_gain = 0.2
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
@@ -231,7 +216,7 @@ class velocityPlanning:
             y_matrix = np.array(y_list)
             x_trans = x_matrix.T
 
-            a_matrix = np.linalg.inv(x_trans.dot(x_matrix)).dot(x_trans).dot(y_matrix)
+            a_matrix = np.linalg.pinv(x_trans.dot(x_matrix)).dot(x_trans).dot(y_matrix)
             a = a_matrix[0]
             b = a_matrix[1]
             c = a_matrix[2]
@@ -254,6 +239,6 @@ class velocityPlanning:
 
 if __name__ == '__main__':
     try:
-        test_track=pure_pursuit()
+        test_track=stanley()
     except rospy.ROSInterruptException:
         pass
