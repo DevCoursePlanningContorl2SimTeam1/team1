@@ -49,13 +49,9 @@ class stanley :
         self.current_position = Point()
 
         self.vehicle_length = 4.47
-        self.lfd = None
-        if self.vehicle_length is None or self.lfd is None:
-            print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
+        if self.vehicle_length is None:
+            print("you need to change values at line 51 , self.vehicle_length ")
             exit()
-        self.min_lfd = 5
-        self.max_lfd = 30
-        self.lfd_gain = 0.78
         self.target_velocity = 40
 
         self.pid = pidControl()
