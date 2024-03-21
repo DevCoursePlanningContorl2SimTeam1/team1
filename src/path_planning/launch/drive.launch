@@ -6,7 +6,6 @@
 
     <node pkg="path_planning" type="mgeo_pub.py" name="mgeo_pub"/>
 
-    <!--<node pkg="path_planning" type="odometry.py" name="odometry"/>-->
     <node pkg="path_planning" type="tf_pub.py" name="tf"/>
     <node pkg="path_planning" type="lattice_planner.py" name="lattice_planner" output="screen"/>
     <node pkg="path_planning" type="purepursuit.py" name="pure_pursuit" output="screen"/>
