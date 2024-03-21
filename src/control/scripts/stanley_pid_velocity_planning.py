@@ -235,6 +235,6 @@ class velocityPlanning:
 
 if __name__ == '__main__':
     try:
-        test_track=pure_pursuit()
+        test_track=stanley()
     except rospy.ROSInterruptException:
         pass
