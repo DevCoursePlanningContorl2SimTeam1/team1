@@ -13,12 +13,6 @@ import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 
-# Advanced_purepursuit is an example of lateral control for vehicle steering.
-# It enhances the lateral driving performance by making the Look Ahead Distance variable proportional to the vehicle's speed.
-# Lateral control inputs are received based on the local path to be traversed and the vehicle's state information provided by odometry.
-# Longitudinal control inputs involve specifying the target speed and then applying throttle control to reach the target speed.
-# Longitudinal control inputs utilize longlCmdType 1 (Throttle control).
-
 # Node Execution Order
 # 1. Declare subscribers and publishers.
 # 2. Set Look Ahead Distance value proportional to speed.
