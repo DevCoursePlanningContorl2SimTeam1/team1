@@ -5,6 +5,7 @@
 
 
     <node pkg="path_planning" type="mgeo_pub.py" name="mgeo_pub"/>
+    <node pkg="perception" type="lane_detector.py" name="lane_detector"/>
 
     <node pkg="path_planning" type="tf_pub.py" name="tf"/>
     <node pkg="path_planning" type="lattice_planner.py" name="lattice_planner" output="screen"/>
