@@ -46,7 +46,7 @@ class pure_pursuit :
         self.ctrl_cmd_msg.longlCmdType = 1
 
         self.is_path = False
-        self.is_odom = False 
+        self.is_odom = False
         self.is_status = False
         self.is_global_path = False
 
@@ -60,7 +60,7 @@ class pure_pursuit :
         if self.vehicle_length is None or self.lfd is None:
             print("you need to change values at line 57~58 ,  self.vegicle_length , lfd")
             exit()
-        self.min_lfd = 2
+        self.min_lfd = 10
         self.max_lfd = 15
         self.lfd_gain = 0.78
         self.target_velocity = 35
@@ -189,8 +189,8 @@ class pure_pursuit :
 class pidControl: 
     def __init__(self):
         self.p_gain = 0.50
-        self.i_gain = 0.00068
-        self.d_gain = 0.035
+        self.i_gain = 0.007
+        self.d_gain = 0.05
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
