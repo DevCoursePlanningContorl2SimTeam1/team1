@@ -72,7 +72,6 @@ class stanley :
                 self.current_waypoint = self.get_current_waypoint(self.status_msg,self.global_path)
                 self.target_velocity = self.velocity_list[self.current_waypoint]*3.6
 
-
                 steering = self.calc_stanley()
                 if self.is_look_forward_point :
                     self.ctrl_cmd_msg.steering = steering
@@ -88,12 +87,6 @@ class stanley :
                 else:
                     self.ctrl_cmd_msg.accel = 0.0
                     self.ctrl_cmd_msg.brake = -output
-
-                # 도착 지점에 도달했는지 확인
-                if self.is_arrived():
-                    # 도착 지점에 도달하면 정지 명령 설정
-                    self.ctrl_cmd_msg.accel = 0.0
-                    self.ctrl_cmd_msg.brake = 100.0
 
                 #TODO: (8) 제어입력 메세지 Publish
                 print(steering)
@@ -160,13 +153,6 @@ class stanley :
         cte = ((y1 - y0) * self.current_position.x - (x1 - x0) * self.current_position.y + x1 * y0 - y1 * x0) / \
               sqrt((y1 - y0) ** 2 + (x1 - x0) ** 2)
         return cte
-
-    def is_arrived(self):
-        # 현재 위치와 마지막 웨이포인트의 거리를 계산하여 도착 여부 확인
-        last_waypoint = self.waypoints[-1]
-        distance_to_last_waypoint = sqrt((self.current_position.x - last_waypoint[0]) ** 2 +
-                                         (self.current_position.y - last_waypoint[1]) ** 2)
-        return distance_to_last_waypoint < 5.0
 
 class pidControl:
     def __init__(self):
