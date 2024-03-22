@@ -36,16 +36,16 @@ class pure_pursuit :
         #TODO: (1) subscriber, publisher 선언
         rospy.Subscriber("/global_path", Path, self.global_path_callback)
         rospy.Subscriber("/lattice_path", Path, self.path_callback)
-        
+
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
-        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback) 
+        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback)
         self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
 
         self.ctrl_cmd_msg = CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType = 1
 
         self.is_path = False
-        self.is_odom = False 
+        self.is_odom = False
         self.is_status = False
         self.is_global_path = False
 
@@ -81,15 +81,14 @@ class pure_pursuit :
 
                 self.current_waypoint = self.get_current_waypoint(self.status_msg,self.global_path)
                 self.target_velocity = self.velocity_list[self.current_waypoint]*3.6
-                
 
                 steering = self.calc_pure_pursuit()
                 if self.is_look_forward_point :
                     self.ctrl_cmd_msg.steering = steering
-                else : 
+                else :
                     rospy.loginfo("no found forward point")
                     self.ctrl_cmd_msg.steering = 0.0
-                
+
                 output = self.pid.pid(self.target_velocity,self.status_msg.velocity.x*3.6)
 
                 if output > 0.0:
@@ -99,15 +98,21 @@ class pure_pursuit :
                     self.ctrl_cmd_msg.accel = 0.0
                     self.ctrl_cmd_msg.brake = -output
 
+                # 도착 지점에 도달했는지 확인
+                if self.is_arrived():
+                    # 도착 지점에 도달하면 정지 명령 설정
+                    self.ctrl_cmd_msg.accel = 0.0
+                    self.ctrl_cmd_msg.brake = 100.0
+
                 #TODO: (8) 제어입력 메세지 Publish
                 print(steering)
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
-                
+
             rate.sleep()
 
     def path_callback(self,msg):
         self.is_path=True
-        self.path=msg  
+        self.path=msg
 
     def odom_callback(self,msg):
         self.is_odom=True
@@ -116,16 +121,16 @@ class pure_pursuit :
         self.current_position.x=msg.pose.pose.position.x
         self.current_position.y=msg.pose.pose.position.y
 
-    def status_callback(self,msg): ## Vehicle Status Subscriber 
+    def status_callback(self,msg): ## Vehicle Status Subscriber
         self.is_status=True
-        self.status_msg=msg    
-        
+        self.status_msg=msg
+
     def global_path_callback(self,msg):
         self.global_path = msg
         self.is_global_path = True
-    
+
     def get_current_waypoint(self,ego_status,global_path):
-        min_dist = float('inf')        
+        min_dist = float('inf')
         current_waypoint = -1
         for i,pose in enumerate(global_path.poses):
             dx = ego_status.position.x - pose.pose.position.x
@@ -141,13 +146,13 @@ class pure_pursuit :
 
         #TODO: (2) 속도 비례 Look Ahead Distance 값 설정
         self.lfd = (self.status_msg.velocity.x) * self.lfd_gain
-        
-        if self.lfd < self.min_lfd : 
+
+        if self.lfd < self.min_lfd :
             self.lfd=self.min_lfd
         elif self.lfd > self.max_lfd :
             self.lfd=self.max_lfd
         rospy.loginfo(self.lfd)
-        
+
         vehicle_position=self.current_position
         self.is_look_forward_point= False
 
@@ -165,7 +170,7 @@ class pure_pursuit :
             path_point=i.pose.position
 
             global_path_point = [path_point.x,path_point.y,1]
-            local_path_point = det_trans_matrix.dot(global_path_point)    
+            local_path_point = det_trans_matrix.dot(global_path_point)
 
             if local_path_point[0]>0 :
                 dis = sqrt(pow(local_path_point[0],2)+pow(local_path_point[1],2))
@@ -173,12 +178,19 @@ class pure_pursuit :
                     self.forward_point = path_point
                     self.is_look_forward_point = True
                     break
-        
+
         #TODO: (4) Steering 각도 계산
         theta = atan2(local_path_point[1],local_path_point[0])
         steering = atan2((2*self.vehicle_length*sin(theta)),self.lfd)
 
         return steering
+
+    def is_arrived(self):
+        # 현재 위치와 마지막 웨이포인트의 거리를 계산하여 도착 여부 확인
+        last_waypoint = self.waypoints[-1]
+        distance_to_last_waypoint = sqrt((self.current_position.x - last_waypoint[0]) ** 2 +
+                                         (self.current_position.y - last_waypoint[1]) ** 2)
+        return distance_to_last_waypoint < 1.0
 
 class pidControl:
     def __init__(self):
