@@ -13,12 +13,6 @@ import numpy as np
 import tf
 from tf.transformations import euler_from_quaternion,quaternion_from_euler
 
-# Advanced_purepursuit is an example of lateral control for vehicle steering.
-# It enhances the lateral driving performance by making the Look Ahead Distance variable proportional to the vehicle's speed.
-# Lateral control inputs are received based on the local path to be traversed and the vehicle's state information provided by odometry.
-# Longitudinal control inputs involve specifying the target speed and then applying throttle control to reach the target speed.
-# Longitudinal control inputs utilize longlCmdType 1 (Throttle control).
-
 # Node Execution Order
 # 1. Declare subscribers and publishers.
 # 2. Set Look Ahead Distance value proportional to speed.
@@ -36,16 +30,16 @@ class stanley :
         #TODO: (1) subscriber, publisher 선언
         rospy.Subscriber("/global_path", Path, self.global_path_callback)
         rospy.Subscriber("/lattice_path", Path, self.path_callback)
-        
+
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
-        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback) 
+        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback)
         self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
 
         self.ctrl_cmd_msg = CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType = 1
 
         self.is_path = False
-        self.is_odom = False 
+        self.is_odom = False
         self.is_status = False
         self.is_global_path = False
 
@@ -55,13 +49,9 @@ class stanley :
         self.current_position = Point()
 
         self.vehicle_length = 4.47
-        self.lfd = None
-        if self.vehicle_length is None or self.lfd is None:
-            print("you need to change values at line 57~58 ,  self.vehicle_length , lfd")
+        if self.vehicle_length is None:
+            print("you need to change values at line 51 , self.vehicle_length ")
             exit()
-        self.min_lfd = 5
-        self.max_lfd = 30
-        self.lfd_gain = 0.78
         self.target_velocity = 40
 
         self.pid = pidControl()
@@ -81,15 +71,14 @@ class stanley :
 
                 self.current_waypoint = self.get_current_waypoint(self.status_msg,self.global_path)
                 self.target_velocity = self.velocity_list[self.current_waypoint]*3.6
-                
 
                 steering = self.calc_stanley()
                 if self.is_look_forward_point :
                     self.ctrl_cmd_msg.steering = steering
-                else : 
+                else :
                     rospy.loginfo("no found forward point")
                     self.ctrl_cmd_msg.steering = 0.0
-                
+
                 output = self.pid.pid(self.target_velocity,self.status_msg.velocity.x*3.6)
 
                 if output > 0.0:
@@ -102,12 +91,12 @@ class stanley :
                 #TODO: (8) 제어입력 메세지 Publish
                 print(steering)
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
-                
+
             rate.sleep()
 
     def path_callback(self,msg):
         self.is_path=True
-        self.path=msg  
+        self.path=msg
 
     def odom_callback(self,msg):
         self.is_odom=True
@@ -116,16 +105,16 @@ class stanley :
         self.current_position.x=msg.pose.pose.position.x
         self.current_position.y=msg.pose.pose.position.y
 
-    def status_callback(self,msg): ## Vehicle Status Subscriber 
+    def status_callback(self,msg): ## Vehicle Status Subscriber
         self.is_status=True
-        self.status_msg=msg    
-        
+        self.status_msg=msg
+
     def global_path_callback(self,msg):
         self.global_path = msg
         self.is_global_path = True
-    
+
     def get_current_waypoint(self,ego_status,global_path):
-        min_dist = float('inf')        
+        min_dist = float('inf')
         current_waypoint = -1
         for i,pose in enumerate(global_path.poses):
             dx = ego_status.position.x - pose.pose.position.x
@@ -138,56 +127,38 @@ class stanley :
         return current_waypoint
 
     def calc_stanley(self):
-        # TODO: (2) 속도 비례 Look Ahead Distance 값 설정
-        self.lfd = (self.status_msg.velocity.x) * self.lfd_gain
+        # 오차 계산
+        cte = self.calc_cross_track_error()
 
-        if self.lfd < self.min_lfd:
-            self.lfd = self.min_lfd
-        elif self.lfd > self.max_lfd:
-            self.lfd = self.max_lfd
-        rospy.loginfo(self.lfd)
+        # 차량 방향과 경로 방향의 차이 각도 계산
+        yaw_error = atan2(self.waypoints[self.current_waypoint][1] - self.current_position.y,
+                          self.waypoints[self.current_waypoint][0] - self.current_position.x) - self.current_yaw
 
-        vehicle_position = self.current_position
-        self.is_look_forward_point = False
-
-        translation = [vehicle_position.x, vehicle_position.y]
-
-        # TODO: (3) 좌표 변환 행렬 생성
-        trans_matrix = np.array([
-            [cos(self.vehicle_yaw), -sin(self.vehicle_yaw), translation[0]],
-            [sin(self.vehicle_yaw), cos(self.vehicle_yaw), translation[1]],
-            [0, 0, 1]])
-
-        det_trans_matrix = np.linalg.inv(trans_matrix)
-
-        for num, i in enumerate(self.path.poses):
-            path_point = i.pose.position
-
-            global_path_point = [path_point.x, path_point.y, 1]
-            local_path_point = det_trans_matrix.dot(global_path_point)
-
-            if local_path_point[0] > 0:
-                dis = sqrt(pow(local_path_point[0], 2) + pow(local_path_point[1], 2))
-                if dis >= self.lfd:
-                    self.forward_point = path_point
-                    self.is_look_forward_point = True
-                    break
-
-        # TODO: (4) Steering 각도 계산
-        delta_x = self.forward_point.x - vehicle_position.x
-        delta_y = self.forward_point.y - vehicle_position.y
-        alpha = atan2(delta_y, delta_x)
-        theta_e = alpha - self.vehicle_yaw
-        L = sqrt(delta_x ** 2 + delta_y ** 2)
-        steering = atan2(2 * self.vehicle_length * sin(theta_e), L)
-
+        # Stanley 제어 계산
+        steering = yaw_error + atan2(self.vehicle_length * cte, self.status_msg.velocity.x)
         return steering
+
+    def calc_cross_track_error(self):
+        # 현재 차량 위치를 기준으로 가장 가까운 경로 상의 점 찾기
+        min_dist = float('inf')
+        for i, (x, y) in enumerate(self.waypoints):
+            dist = sqrt((self.current_position.x - x) ** 2 + (self.current_position.y - y) ** 2)
+            if dist < min_dist:
+                min_dist = dist
+                self.current_waypoint = i
+
+        # 차량 위치와 가장 가까운 경로 상의 점과의 거리 계산
+        x0, y0 = self.waypoints[self.current_waypoint]
+        x1, y1 = self.waypoints[(self.current_waypoint + 1) % len(self.waypoints)]
+        cte = ((y1 - y0) * self.current_position.x - (x1 - x0) * self.current_position.y + x1 * y0 - y1 * x0) / \
+              sqrt((y1 - y0) ** 2 + (x1 - x0) ** 2)
+        return cte
 
 class pidControl:
     def __init__(self):
         self.p_gain = 0.3
         self.i_gain = 0.00
-        self.d_gain = 0.03
+        self.d_gain = 0.025
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
@@ -253,6 +224,6 @@ class velocityPlanning:
 
 if __name__ == '__main__':
     try:
-        test_track=pure_pursuit()
+        test_track=stanley()
     except rospy.ROSInterruptException:
         pass
