@@ -1,0 +1,3 @@
+[submodule "src/MORAI-DriveExample_ROS"]
+	path = src/MORAI-DriveExample_ROS
+	url = https://github.com/MORAI-Autonomous/MORAI-DriveExample_ROS
