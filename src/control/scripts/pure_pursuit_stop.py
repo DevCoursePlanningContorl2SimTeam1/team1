@@ -77,14 +77,19 @@ class pure_pursuit :
                     self.ctrl_cmd_msg.steering = 0.0
                 output = self.pid.pid(self.target_velocity,self.status_msg.velocity.x*3.6)
 
-                if output > 0.0:
-                    self.ctrl_cmd_msg.accel = output
-                    self.ctrl_cmd_msg.brake = 0.0
-                    print("here1!")
-                else:
+                # 도착 지점에 도달했는지 확인
+                if self.is_arrived(self.global_path, 6.0):
                     self.ctrl_cmd_msg.accel = 0.0
-                    self.ctrl_cmd_msg.brake = -output
-                    print("here2!")
+                    self.ctrl_cmd_msg.brake = 100.0
+                else:
+                    if output > 0.0:
+                        self.ctrl_cmd_msg.accel = output
+                        self.ctrl_cmd_msg.brake = 0.0
+                        print("here1!")
+                    else:
+                        self.ctrl_cmd_msg.accel = 0.0
+                        self.ctrl_cmd_msg.brake = -output
+                        print("here2!")
 
                 #TODO: (8) 제어입력 메세지 Publish
                 print(steering)
@@ -170,6 +175,14 @@ class pure_pursuit :
             exit()
 
         return steering
+
+    def is_arrived(self, ego_status, global_path, dist):
+        # 현재 위치와 마지막 웨이포인트의 거리를 계산하여 도착 여부 확인
+        x = global_path.poses[-1].pose.position.x
+        y = global_path.poses[-1].pose.position.y
+        distance_to_last_waypoint = sqrt((ego_status.position.x - x) ** 2 +
+                                         (ego_status.position.y - y) ** 2)
+        return distance_to_last_waypoint <= dist
 
 class pidControl:
     def __init__(self):

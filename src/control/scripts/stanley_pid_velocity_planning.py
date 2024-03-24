@@ -30,16 +30,16 @@ class stanley :
         #TODO: (1) subscriber, publisher 선언
         rospy.Subscriber("/global_path", Path, self.global_path_callback)
         rospy.Subscriber("/lattice_path", Path, self.path_callback)
-        
+
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
-        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback) 
+        rospy.Subscriber("/Ego_topic",EgoVehicleStatus, self.status_callback)
         self.ctrl_cmd_pub = rospy.Publisher('ctrl_cmd_0',CtrlCmd, queue_size=1)
 
         self.ctrl_cmd_msg = CtrlCmd()
         self.ctrl_cmd_msg.longlCmdType = 1
 
         self.is_path = False
-        self.is_odom = False 
+        self.is_odom = False
         self.is_status = False
         self.is_global_path = False
 
@@ -71,15 +71,14 @@ class stanley :
 
                 self.current_waypoint = self.get_current_waypoint(self.status_msg,self.global_path)
                 self.target_velocity = self.velocity_list[self.current_waypoint]*3.6
-                
 
                 steering = self.calc_stanley()
                 if self.is_look_forward_point :
                     self.ctrl_cmd_msg.steering = steering
-                else : 
+                else :
                     rospy.loginfo("no found forward point")
                     self.ctrl_cmd_msg.steering = 0.0
-                
+
                 output = self.pid.pid(self.target_velocity,self.status_msg.velocity.x*3.6)
 
                 if output > 0.0:
@@ -92,12 +91,12 @@ class stanley :
                 #TODO: (8) 제어입력 메세지 Publish
                 print(steering)
                 self.ctrl_cmd_pub.publish(self.ctrl_cmd_msg)
-                
+
             rate.sleep()
 
     def path_callback(self,msg):
         self.is_path=True
-        self.path=msg  
+        self.path=msg
 
     def odom_callback(self,msg):
         self.is_odom=True
@@ -106,16 +105,16 @@ class stanley :
         self.current_position.x=msg.pose.pose.position.x
         self.current_position.y=msg.pose.pose.position.y
 
-    def status_callback(self,msg): ## Vehicle Status Subscriber 
+    def status_callback(self,msg): ## Vehicle Status Subscriber
         self.is_status=True
-        self.status_msg=msg    
-        
+        self.status_msg=msg
+
     def global_path_callback(self,msg):
         self.global_path = msg
         self.is_global_path = True
-    
+
     def get_current_waypoint(self,ego_status,global_path):
-        min_dist = float('inf')        
+        min_dist = float('inf')
         current_waypoint = -1
         for i,pose in enumerate(global_path.poses):
             dx = ego_status.position.x - pose.pose.position.x
