@@ -55,15 +55,15 @@ class pure_pursuit :
         self.forward_point = Point()
         self.current_postion = Point()
 
-        self.vehicle_length = 2.72
-        self.lfd = 6
+        self.vehicle_length = 4.470
+        self.lfd = 4.2
         if self.vehicle_length is None or self.lfd is None:
             print("you need to change values at line 57~58 ,  self.vegicle_length , lfd")
             exit()
-        self.min_lfd = 10
+        self.min_lfd = 3
         self.max_lfd = 15
-        self.lfd_gain = 0.78
-        self.target_velocity = 35
+        self.lfd_gain = 0.8 #0.78
+        self.target_velocity = 60
 
         self.pid = pidControl()
         self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.15)
@@ -188,9 +188,9 @@ class pure_pursuit :
 
 class pidControl: 
     def __init__(self):
-        self.p_gain = 0.50
-        self.i_gain = 0.007
-        self.d_gain = 0.05
+        self.p_gain = 0.60
+        self.i_gain = 0.02
+        self.d_gain = 0.08
         self.prev_error = 0
         self.i_control = 0
         self.controlTime = 0.02
